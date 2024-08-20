@@ -29,6 +29,10 @@ def process_day_data(date, group):
     # Backfill missing values and forward fill remaining missing values
     df_filled = df_reindexed.bfill().ffill()
     
+    # Check if the DataFrame is empty after filling
+    if df_filled.empty or df_filled['Open'].isnull().all():
+        return pd.DataFrame()  # Return an empty DataFrame if no valid data exists
+    
     # Add columns for 'Date' and 'Time'
     df_filled['Date'] = date.strftime('%Y%m%d')
     df_filled['Time'] = [t.strftime('%H:%M') for t in df_filled.index.time]
