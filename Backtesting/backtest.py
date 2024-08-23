@@ -11,7 +11,7 @@ def timeToIndex(time_input, start_time='09:15'):
         raise ValueError(f"Invalid time format. Please use '{time_format}'.")
     time_difference = (input_time - start_time).total_seconds() / 60
     index = int(time_difference)
-    if index < 0 or index > 375:
+    if index < 0 or index >= 375:
         raise ValueError("Out of range time")
     return index
 
