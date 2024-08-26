@@ -68,6 +68,8 @@ def pointsToHighTarget(df, column_name, start_index, dayHigh, isDayHighBreak): #
             currHigh = df.loc[i,column_name]
             if target <= currHigh:
                 target = currHigh
+    else:
+        return 0
     return target
 
 def pointsToHighSL(df, column_name, start_index, dayHigh, isDayHighBreak): #column_name = low
@@ -77,6 +79,8 @@ def pointsToHighSL(df, column_name, start_index, dayHigh, isDayHighBreak): #colu
             currLow = df.loc[i,column_name]
             if stop_loss >= currLow:
                 stop_loss = currLow
+    else:
+        return 0
     return stop_loss
 
 def pointsToLowTarget(df, column_name, start_index, dayLow, isDayLowBreak): #column_name = low
@@ -86,6 +90,8 @@ def pointsToLowTarget(df, column_name, start_index, dayLow, isDayLowBreak): #col
             currLow = df.loc[i,column_name]
             if target >= currLow:
                 target = currLow
+    else:
+        return 0
     return target
 
 def pointsToLowSL(df, column_name, start_index, dayLow, isDayLowBreak): #column_name = high
@@ -95,6 +101,8 @@ def pointsToLowSL(df, column_name, start_index, dayLow, isDayLowBreak): #column_
             currHigh = df.loc[i,column_name]
             if currHigh >= stop_loss:
                 stop_loss = currHigh
+    else:
+        return 0
     return stop_loss
          
 def df_filter(df, columns):
@@ -106,7 +114,7 @@ def process_csv(csv_file_path, output_csv_path, index):
     chunk_size = 375
     column_names = ['Instrument', 'Date', 'Time', 'Open', 'High', 'Low', 'Close']
     day_data_chunk = pd.read_csv(csv_file_path, skiprows=1, chunksize=chunk_size, header=None)
-    new_df = pd.DataFrame(columns=['Date', 'Time', 'DayHigh', 'DayLow', 'IsDayHighBreak', 'IsDayLowBreak','ComesBackToDayHigh', 'ComesBackToDayLow', 'TargetHigh', 'points_from_target_high', 'SLHigh', 'points_from_SL_High', 'TargetLow', 'points_from_Target_Low', 'SLLow', 'points_from_SL_low', 'Closing', 'ClosingPointDiffForHigh', 'ClosingPointDiffForLow'])
+    new_df = pd.DataFrame(columns=['Date', 'Time', 'DayHigh', 'DayLow', 'IsDayHighBreak', 'IsDayLowBreak','ComesBackToDayHigh', 'ComesBackToDayLow', 'TargetHigh', 'points_from_target_high', 'SLHigh', 'points_from_SL_High', 'TargetLow', 'points_from_Target_Low', 'SLLow', 'points_from_SL_low', 'Closing', 'ClosingPointDiffForHigh', 'ClosingPointDiffForLow', 'noBreak'])
 
     for day in day_data_chunk:
         if not day.empty:
@@ -138,7 +146,15 @@ def process_csv(csv_file_path, output_csv_path, index):
             target_low = pointsToLowTarget(day,'Low', index, dayLow, isDayLowBreak)
             SL_low = pointsToLowSL(day,'High', index, dayLow, isDayLowBreak)
             
-            new_df.loc[len(new_df)] = [date, time_input, dayHigh, dayLow, isDayHighBreak, isDayLowBreak,isComesBackToDayHigh, isComesBackToDayLow, target_high, target_high-dayHigh, SL_High, SL_High-dayHigh, target_low, dayLow-target_low, SL_low, dayLow-SL_low, closing, closing-dayHigh, dayLow-closing]
+            diff_from_target_high = target_high - dayHigh if target_high != 0 else 0
+            diff_from_sl_high = SL_High - dayHigh if SL_High != 0 else 0
+            diff_from_target_low = dayLow - target_low if target_low != 0 else 0
+            diff_from_sl_low = dayLow - SL_low if SL_low != 0 else 0
+            
+            closing_diff_for_high = closing-dayHigh if isDayHighBreak else 0
+            closing_diff_for_low = dayLow-closing if isDayLowBreak else 0
+            
+            new_df.loc[len(new_df)] = [date, time_input, dayHigh, dayLow, isDayHighBreak, isDayLowBreak,isComesBackToDayHigh, isComesBackToDayLow, target_high, diff_from_target_high ,SL_High, diff_from_sl_high, target_low, diff_from_target_low, SL_low, diff_from_sl_low, closing, closing_diff_for_high, closing_diff_for_low, not (isDayHighBreak or isDayLowBreak)]
 
     columns_to_format = [
         'DayHigh', 'DayLow', 'TargetHigh', 'points_from_target_high', 'SLHigh', 'points_from_SL_High', 'TargetLow', 'points_from_Target_Low', 'SLLow', 'points_from_SL_low', 'Closing', 'ClosingPointDiffForHigh', 'ClosingPointDiffForLow'
