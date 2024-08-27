@@ -1,5 +1,5 @@
 import pandas as pd
-from datetime import datetime
+from datetime import datetime,timedelta
 import os 
 
 def timeToIndex(time_input, start_time='09:15'):
@@ -49,7 +49,7 @@ def comesBackToDayHigh(df, column_name, start_index, dayHigh, isHighBreak):
     if isHighBreak:
         for i in range(start_index+1,375):
             currLow = df.loc[i,column_name]
-            if currLow <= dayHigh:
+            if currLow < dayHigh:
                 return True
     return False
 
@@ -68,9 +68,7 @@ def pointsToHighTarget(df, column_name, start_index, dayHigh, isDayHighBreak): #
             currHigh = df.loc[i,column_name]
             if target <= currHigh:
                 target = currHigh
-    else:
-        return 0
-    return target
+    return target-dayHigh
 
 def pointsToHighSL(df, column_name, start_index, dayHigh, isDayHighBreak): #column_name = low
     stop_loss = dayHigh
@@ -79,9 +77,7 @@ def pointsToHighSL(df, column_name, start_index, dayHigh, isDayHighBreak): #colu
             currLow = df.loc[i,column_name]
             if stop_loss >= currLow:
                 stop_loss = currLow
-    else:
-        return 0
-    return stop_loss
+    return stop_loss-dayHigh
 
 def pointsToLowTarget(df, column_name, start_index, dayLow, isDayLowBreak): #column_name = low
     target = dayLow
@@ -90,9 +86,7 @@ def pointsToLowTarget(df, column_name, start_index, dayLow, isDayLowBreak): #col
             currLow = df.loc[i,column_name]
             if target >= currLow:
                 target = currLow
-    else:
-        return 0
-    return target
+    return dayLow-target
 
 def pointsToLowSL(df, column_name, start_index, dayLow, isDayLowBreak): #column_name = high
     stop_loss = dayLow
@@ -101,20 +95,18 @@ def pointsToLowSL(df, column_name, start_index, dayLow, isDayLowBreak): #column_
             currHigh = df.loc[i,column_name]
             if currHigh >= stop_loss:
                 stop_loss = currHigh
-    else:
-        return 0
-    return stop_loss
+    return dayLow-stop_loss
          
 def df_filter(df, columns):
     for column in columns:
         df[column]=df[column].map('{:.2f}'.format)
     return df
 
-def process_csv(csv_file_path, output_csv_path, index):
+def process_csv(csv_file_path, output_csv_path, index, time_input):
     chunk_size = 375
     column_names = ['Instrument', 'Date', 'Time', 'Open', 'High', 'Low', 'Close']
     day_data_chunk = pd.read_csv(csv_file_path, skiprows=1, chunksize=chunk_size, header=None)
-    new_df = pd.DataFrame(columns=['Date', 'Time', 'DayHigh', 'DayLow', 'IsDayHighBreak', 'IsDayLowBreak','ComesBackToDayHigh', 'ComesBackToDayLow', 'TargetHigh', 'points_from_target_high', 'SLHigh', 'points_from_SL_High', 'TargetLow', 'points_from_Target_Low', 'SLLow', 'points_from_SL_low', 'Closing', 'ClosingPointDiffForHigh', 'ClosingPointDiffForLow', 'noBreak'])
+    new_df = pd.DataFrame(columns=['Date', 'Time', 'DayHigh', 'DayLow', 'IsDayHighBreak', 'IsDayLowBreak','ComesBackToDayHigh', 'ComesBackToDayLow', 'TargetHigh', 'points_from_target_high', 'percentChangeTargetHigh','SLHigh', 'points_from_SL_High', 'percentageChangeSLHigh' ,'TargetLow', 'points_from_Target_Low', 'percentageChangeTargetLow','SLLow', 'points_from_SL_low','percentageChangeSLLow', 'Closing', 'ClosingPointDiffForHigh', 'ClosingPointDiffForLow', 'noBreak'])
 
     for day in day_data_chunk:
         if not day.empty:
@@ -122,10 +114,6 @@ def process_csv(csv_file_path, output_csv_path, index):
             isDayLowBreak = False
             isComesBackToDayHigh = False
             isComesBackToDayLow = False
-            target_high = 0
-            SL_low = 0
-            target_low = 0
-            SL_low = 0
             
             day.columns = column_names
             day.reset_index(drop=True, inplace=True)
@@ -141,20 +129,32 @@ def process_csv(csv_file_path, output_csv_path, index):
             isComesBackToDayHigh = comesBackToDayHigh(day,'Low',index,dayHigh,isDayHighBreak)
             isComesBackToDayLow = comesBackToDayHigh(day,'High',index,dayLow,isDayLowBreak)
             
-            target_high = pointsToHighTarget(day,'High', index, dayHigh, isDayHighBreak)
-            SL_High = pointsToHighSL(day,'Low', index, dayHigh, isDayHighBreak)
-            target_low = pointsToLowTarget(day,'Low', index, dayLow, isDayLowBreak)
-            SL_low = pointsToLowSL(day,'High', index, dayLow, isDayLowBreak)
+            diff_from_target_high = pointsToHighTarget(day,'High', index, dayHigh, isDayHighBreak)
+            diff_from_sl_high = pointsToHighSL(day,'Low', index, dayHigh, isDayHighBreak)
+            diff_from_target_low = pointsToLowTarget(day,'Low', index, dayLow, isDayLowBreak)
+            diff_from_sl_low = pointsToLowSL(day,'High', index, dayLow, isDayLowBreak)
             
-            diff_from_target_high = target_high - dayHigh if target_high != 0 else 0
-            diff_from_sl_high = SL_High - dayHigh if SL_High != 0 else 0
-            diff_from_target_low = dayLow - target_low if target_low != 0 else 0
-            diff_from_sl_low = dayLow - SL_low if SL_low != 0 else 0
+            target_high = 0
+            sl_high = 0
+            target_low = 0
+            sl_low = 0
+            closing_for_high = 0
+            closing_for_low = 0
+            if isDayHighBreak:
+                target_high = dayHigh+diff_from_target_high
+                sl_high = dayHigh+diff_from_sl_high
+                closing_for_high = closing-dayHigh
+            if isDayLowBreak:
+                target_low = dayLow-diff_from_target_low
+                sl_low = dayLow-diff_from_sl_low
+                closing_for_low = dayLow-closing
             
-            closing_diff_for_high = closing-dayHigh if isDayHighBreak else 0
-            closing_diff_for_low = dayLow-closing if isDayLowBreak else 0
+            target_high_percent = round((diff_from_target_high / dayHigh) * 100, 2)
+            sl_high_percent = round((diff_from_sl_high / dayHigh) * 100, 2)
+            target_low_percent = round((diff_from_target_low / dayLow) * 100, 2)
+            sl_low_percent = round((diff_from_sl_low / dayLow) * 100, 2)
             
-            new_df.loc[len(new_df)] = [date, time_input, dayHigh, dayLow, isDayHighBreak, isDayLowBreak,isComesBackToDayHigh, isComesBackToDayLow, target_high, diff_from_target_high ,SL_High, diff_from_sl_high, target_low, diff_from_target_low, SL_low, diff_from_sl_low, closing, closing_diff_for_high, closing_diff_for_low, not (isDayHighBreak or isDayLowBreak)]
+            new_df.loc[len(new_df)] = [date, time_input, dayHigh, dayLow, isDayHighBreak, isDayLowBreak,isComesBackToDayHigh, isComesBackToDayLow, target_high,diff_from_target_high, target_high_percent, sl_high, diff_from_sl_high, sl_high_percent ,target_low, diff_from_target_low, target_low_percent, sl_low, diff_from_sl_low, sl_low_percent, closing, closing_for_high, closing_for_low, not (isDayHighBreak or isDayLowBreak)]
 
     columns_to_format = [
         'DayHigh', 'DayLow', 'TargetHigh', 'points_from_target_high', 'SLHigh', 'points_from_SL_High', 'TargetLow', 'points_from_Target_Low', 'SLLow', 'points_from_SL_low', 'Closing', 'ClosingPointDiffForHigh', 'ClosingPointDiffForLow'
@@ -162,27 +162,50 @@ def process_csv(csv_file_path, output_csv_path, index):
     new_df = df_filter(new_df, columns_to_format)
     new_df.to_csv(output_csv_path, index=False)
 
-def traverse_every_file(source_dir, target_dir, index):
+def traverse_every_file(source_dir, destination_folder, index, time_input):
     for root, dirs, files in os.walk(source_dir):
-        for file in files:
-            if file.endswith('.csv'):
+        for file in files: 
+            #files = [BANK_NIFTY_data-cleaned,NIFTY_data-cleaned]
+            #file = file in files[0] and files[1] and so on..
+            if file.endswith('.csv'): 
                 new_filename = file.replace('cleaned_', 'backtest_')
-                relative_path = os.path.relpath(root,source_dir)
+                relative_path = os.path.relpath(root,source_dir) #root = Refactored-Data
                 new_relative_path = relative_path.replace('-cleaned', '-backtest')
-                target_subdir = os.path.join(target_dir, new_relative_path)
-                if not os.path.exists(target_subdir):
-                    os.makedirs(target_subdir)
+                target_subdir = os.path.join(destination_folder, new_relative_path)
+                os.makedirs(target_subdir,exist_ok=True)
                 source_csv_path = os.path.join(root, file)
                 target_csv_path = os.path.join(target_subdir, new_filename)
                 print(f"Processing file: {source_csv_path}")
-                process_csv(source_csv_path, target_csv_path, index)
-                print(f"Saved processed file to: {target_csv_path}")
+                process_csv(source_csv_path, target_csv_path, index, time_input)
+                print(f"Saved processed file to: {target_csv_path}\n")
+
+def create_time_folders(destination_dir,source_dir): 
+    # This function is used to create subfolders by name 09_30_backtest, 09_45_backtest
+    # The subfolders in each of the folders will be handeled by traverse_every_file() function
+    start_time = "09:30"
+    end_time = "15:00"
+    destination_dir += "\CSV"
+    interval_minutes = 15
+    start = datetime.strptime(start_time, "%H:%M")
+    end = datetime.strptime(end_time, "%H:%M")
+    
+    # Create directories at destination_dir
+    current_time = start
+    while current_time <= end:
+        current_time_str = current_time.strftime("%H:%M")
+        index = timeToIndex(current_time_str)
+        folder_name = current_time.strftime("%H_%M") + "_backtest"
+        folder_path = os.path.join(destination_dir, folder_name)
+        os.makedirs(folder_path, exist_ok=True)
+        print(f"{folder_path} \n{source_dir} \n{index}")
+        traverse_every_file(source_dir,folder_path,index,current_time_str)
+        current_time += timedelta(minutes=interval_minutes)
 
 if __name__ == "__main__":
     time_input = input("Enter time (HH:MM): ")
     index = timeToIndex(time_input)
     source_dir = 'Refactored-Data'
-    target_dir = 'Backtesting'
-    if not os.path.exists(target_dir):
-        os.makedirs(target_dir)
-    traverse_every_file(source_dir,target_dir,index)
+    destination_folder = 'Backtesting'
+    os.makedirs(destination_folder, exist_ok=True)
+    traverse_every_file(source_dir,destination_folder,index,time_input)
+    # create_time_folders(destination_folder,source_dir)
