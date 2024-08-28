@@ -100,7 +100,8 @@ def process_folder(input_folder, output_folder):
             input_path = os.path.join(input_subfolder, file)
             filename = os.path.basename(file)
             output_path = os.path.join(output_subfolder, f"cleaned_{filename}")
-            clean_and_save_data(input_path, output_path)
+            if os.path.isfile(input_path):
+                clean_and_save_data(input_path, output_path)
 
 if __name__ == "__main__":
     input_folder = os.getcwd() #getcwd is used to get path of current working directory
