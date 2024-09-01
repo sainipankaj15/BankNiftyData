@@ -83,9 +83,9 @@ def process_folder(input_folder, output_folder):
     This fucntion is used to process both the folders NIFTY_data and BANK_NIFTY_data simultaneously and process csv from 2010 to 2020
     '''
     shares = {
-        "NIFTY": ["NIFTY_2010.csv", "NIFTY_2011.csv", "NIFTY_2012.csv", "NIFTY_2013.csv", "NIFTY_2014.csv", "NIFTY_2015.csv", "NIFTY_2016.csv", "NIFTY_2017.csv", "NIFTY_2018.csv", "NIFTY_2019.csv", "NIFTY_2020.csv"],
+        "NIFTY": ["NIFTY_2010.csv", "NIFTY_2011.csv", "NIFTY_2012.csv", "NIFTY_2013.csv", "NIFTY_2014.csv", "NIFTY_2015.csv", "NIFTY_2016.csv", "NIFTY_2017.csv", "NIFTY_2018.csv", "NIFTY_2019.csv", "NIFTY_2020.csv","NIFTY_2021.csv","NIFTY_2022.csv","NIFTY_2023.csv","NIFTY_2024.csv"],
         
-        "BANK_NIFTY": ["BNF_2010.csv", "BNF_2011.csv", "BNF_2012.csv", "BNF_2013.csv", "BNF_2014.csv", "BNF_2015.csv", "BNF_2016.csv", "BNF_2017.csv", "BNF_2018.csv", "BNF_2019.csv", "BNF_2020.csv"]
+        "BANK_NIFTY": ["BNF_2010.csv", "BNF_2011.csv", "BNF_2012.csv", "BNF_2013.csv", "BNF_2014.csv", "BNF_2015.csv", "BNF_2016.csv", "BNF_2017.csv", "BNF_2018.csv", "BNF_2019.csv", "BNF_2020.csv", "BNF_2021.csv", "BNF_2022.csv", "BNF_2023.csv", "BNF_2024.csv"]
     }
 
     for key, files in shares.items():
