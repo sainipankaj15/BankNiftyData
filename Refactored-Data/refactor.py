@@ -29,6 +29,10 @@ def process_day_data(date, group):
     # Backfill missing values and forward fill remaining missing values
     df_filled = df_reindexed.bfill().ffill()
     
+    # Check if the DataFrame is empty after filling
+    if df_filled.empty or df_filled['Open'].isnull().all():
+        return pd.DataFrame()  # Return an empty DataFrame if no valid data exists
+    
     # Add columns for 'Date' and 'Time'
     df_filled['Date'] = date.strftime('%Y%m%d')
     df_filled['Time'] = [t.strftime('%H:%M') for t in df_filled.index.time]
@@ -79,9 +83,9 @@ def process_folder(input_folder, output_folder):
     This fucntion is used to process both the folders NIFTY_data and BANK_NIFTY_data simultaneously and process csv from 2010 to 2020
     '''
     shares = {
-        "NIFTY": ["NIFTY_2010.csv", "NIFTY_2011.csv", "NIFTY_2012.csv", "NIFTY_2013.csv", "NIFTY_2014.csv", "NIFTY_2015.csv", "NIFTY_2016.csv", "NIFTY_2017.csv", "NIFTY_2018.csv", "NIFTY_2019.csv", "NIFTY_2020.csv"],
+        "NIFTY": ["NIFTY_2010.csv", "NIFTY_2011.csv", "NIFTY_2012.csv", "NIFTY_2013.csv", "NIFTY_2014.csv", "NIFTY_2015.csv", "NIFTY_2016.csv", "NIFTY_2017.csv", "NIFTY_2018.csv", "NIFTY_2019.csv", "NIFTY_2020.csv","NIFTY_2021.csv","NIFTY_2022.csv","NIFTY_2023.csv","NIFTY_2024.csv"],
         
-        "BANK_NIFTY": ["BNF_2010.csv", "BNF_2011.csv", "BNF_2012.csv", "BNF_2013.csv", "BNF_2014.csv", "BNF_2015.csv", "BNF_2016.csv", "BNF_2017.csv", "BNF_2018.csv", "BNF_2019.csv", "BNF_2020.csv"]
+        "BANK_NIFTY": ["BNF_2010.csv", "BNF_2011.csv", "BNF_2012.csv", "BNF_2013.csv", "BNF_2014.csv", "BNF_2015.csv", "BNF_2016.csv", "BNF_2017.csv", "BNF_2018.csv", "BNF_2019.csv", "BNF_2020.csv", "BNF_2021.csv", "BNF_2022.csv", "BNF_2023.csv", "BNF_2024.csv"]
     }
 
     for key, files in shares.items():
@@ -96,7 +100,8 @@ def process_folder(input_folder, output_folder):
             input_path = os.path.join(input_subfolder, file)
             filename = os.path.basename(file)
             output_path = os.path.join(output_subfolder, f"cleaned_{filename}")
-            clean_and_save_data(input_path, output_path)
+            if os.path.isfile(input_path):
+                clean_and_save_data(input_path, output_path)
 
 if __name__ == "__main__":
     input_folder = os.getcwd() #getcwd is used to get path of current working directory
